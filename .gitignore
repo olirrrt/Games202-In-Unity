@@ -1,4 +1,8 @@
+prt/scenes
+.vscode/
+.vscode
 Assignment1
+Assignment4
 build
 .DS_Store
 .vsconfig

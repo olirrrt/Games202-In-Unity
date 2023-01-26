@@ -1,16 +1,16 @@
 <scene>
     <!-- Independent sample generator, one sample per pixel -->
 	<sampler type="independent">
-		<integer name="sampleCount" value="1"/>
+		<integer name="sampleCount" value="10"/>
 	</sampler>
 
     <!-- Render the visible surface normals -->
-	<!-- GraceCathedral  CornellBox-->
+	<!-- GraceCathedral  CornellBox interreflection-->
     <integrator type="prt">
-		<string name="type" value="shadowed" />
-		<integer name="bounce" value="1" />
+		<string name="type" value="interreflection" />
+		<integer name="bounce" value="2" />
 		<integer name="PRTSampleCount" value="100" />
-		<string name="cubemap" value="cubemap/Skybox" />
+		<string name="cubemap" value="cubemap/GraceCathedral" />
 	</integrator>
 
     <!-- Load the Stanford bunny (https://graphics.stanford.edu/data/3Dscanrep/) -->
@@ -24,7 +24,7 @@
         <!-- 3D origin, target point, and 'up' vector -->
 		<transform name="toWorld">
             <lookat target="0.0, 1.0, 1.0"
-                    origin="0.0, 8.0, 22.0"
+                    origin="4.0, 8.0, 14.0"
                     up="0.0, 1.0, 0.0"/>
 		</transform>
 

@@ -14,17 +14,17 @@ NORI_NAMESPACE_BEGIN
 namespace ProjEnv
 {
 	std::vector<std::unique_ptr<float[]>>
-		LoadCubemapImages(const std::string& cubemapDir, int& width, int& height,
-			int& channel)
+	LoadCubemapImages(const std::string &cubemapDir, int &width, int &height,
+					  int &channel)
 	{
-		std::vector<std::string> cubemapNames{ "negx.jpg", "posx.jpg", "posy.jpg",
-											  "negy.jpg", "posz.jpg", "negz.jpg" };
+		std::vector<std::string> cubemapNames{"negx.jpg", "posx.jpg", "posy.jpg",
+											  "negy.jpg", "posz.jpg", "negz.jpg"};
 		std::vector<std::unique_ptr<float[]>> images(6);
 		for (int i = 0; i < 6; i++)
 		{
 			std::string filename = cubemapDir + "/" + cubemapNames[i];
 			int w, h, c;
-			float* image = stbi_loadf(filename.c_str(), &w, &h, &c, 3);
+			float *image = stbi_loadf(filename.c_str(), &w, &h, &c, 3);
 			if (!image)
 			{
 				std::cout << "Failed to load image: " << filename << std::endl;
@@ -51,14 +51,14 @@ namespace ProjEnv
 
 	const Eigen::Vector3f cubemapFaceDirections[6][3] = {
 		{{0, 0, 1}, {0, -1, 0}, {-1, 0, 0}},  // negx
-		{{0, 0, 1}, {0, -1, 0}, {1, 0, 0}},   // posx
+		{{0, 0, 1}, {0, -1, 0}, {1, 0, 0}},	  // posx
 		{{1, 0, 0}, {0, 0, -1}, {0, -1, 0}},  // negy
-		{{1, 0, 0}, {0, 0, 1}, {0, 1, 0}},    // posy
+		{{1, 0, 0}, {0, 0, 1}, {0, 1, 0}},	  // posy
 		{{-1, 0, 0}, {0, -1, 0}, {0, 0, -1}}, // negz
-		{{1, 0, 0}, {0, -1, 0}, {0, 0, 1}},   // posz
+		{{1, 0, 0}, {0, -1, 0}, {0, 0, 1}},	  // posz
 	};
 
-	float CalcPreArea(const float& x, const float& y)
+	float CalcPreArea(const float &x, const float &y)
 	{
 		return std::atan2(x * y, std::sqrt(x * x + y * y + 1.0));
 	}
@@ -68,8 +68,8 @@ namespace ProjEnv
 	// 球谐系数：，具有旋转不变性
 	// 投影：离线预计算
 	// 重建：实时，丢失高频信息
-	float CalcArea(const float& u_, const float& v_, const int& width,
-		const int& height)
+	float CalcArea(const float &u_, const float &v_, const int &width,
+				   const int &height)
 	{
 		// transform from [0..res - 1] to [- (1 - 1 / res) .. (1 - 1 / res)]
 		// ( 0.5 is for texel center addressing)
@@ -87,7 +87,7 @@ namespace ProjEnv
 		float x1 = u + invResolutionW;
 		float y1 = v + invResolutionH;
 		float angle = CalcPreArea(x0, y0) - CalcPreArea(x0, y1) -
-			CalcPreArea(x1, y0) + CalcPreArea(x1, y1);
+					  CalcPreArea(x1, y0) + CalcPreArea(x1, y1);
 
 		return angle;
 	}
@@ -95,9 +95,9 @@ namespace ProjEnv
 	// template <typename T> T ProjectSH() {}
 
 	template <size_t SHOrder>
-	std::vector<Eigen::Array3f> PrecomputeCubemapSH(const std::vector<std::unique_ptr<float[]>>& images,
-		const int& width, const int& height,
-		const int& channel)
+	std::vector<Eigen::Array3f> PrecomputeCubemapSH(const std::vector<std::unique_ptr<float[]>> &images,
+													const int &width, const int &height,
+													const int &channel)
 	{
 		std::vector<Eigen::Vector3f> cubemapDirs;
 		cubemapDirs.reserve(6 * width * height);
@@ -122,30 +122,32 @@ namespace ProjEnv
 		for (int i = 0; i < SHNum; i++)
 			SHCoeffiecents[i] = Eigen::Array3f(0);
 		float sumWeight = 0;
-		for (int i = 0; i < 6; i++)// 天空盒的每个面
+		for (int i = 0; i < 6; i++) // 天空盒的每个面
 		{
-			for (int y = 0; y < height; y++)// 每张纹理的每个纹素
+			for (int y = 0; y < height; y++) // 每张纹理的每个纹素
 			{
 				for (int x = 0; x < width; x++)
 				{
 					// TODO: here you need to compute light sh of each face of cubemap of each pixel
 					// TODO: 此处你需要计算每个像素下cubemap某个面的球谐系数
 					// 将环境光投影到球谐函数==将环境光分布用球谐函数表示
-					Eigen::Vector3f dir = cubemapDirs[i * width * height + y * width + x];// 第i张贴图(x,y)方向
+					Eigen::Vector3f dir = cubemapDirs[i * width * height + y * width + x]; // 第i张贴图(x,y)方向
 					int index = (y * width + x) * channel;
 					Eigen::Array3f Le(images[i][index + 0], images[i][index + 1],
-						images[i][index + 2]);
+									  images[i][index + 2]);
 
-					//double phi = acos(dir.z());
-					//double theta = atan2(dir.x(), dir.y());
+					// double phi = acos(dir.z());
+					// double theta = atan2(dir.x(), dir.y());
 
-					for (int l = 0; l < SHOrder; l++) {
-						for (int m = -l; m <= l; m++) {
-							//float sh = sh::EvalSH(l, m, phi, theta);
+					for (int l = 0; l < SHOrder; l++)
+					{
+						for (int m = -l; m <= l; m++)
+						{
+							// float sh = sh::EvalSH(l, m, phi, theta);
 							float sh = sh::EvalSH(l, m, dir.cast<double>().normalized());
 							float delta = CalcArea(x, y, width, height);
-							//GetIndex(l, m);
-							SHCoeffiecents[l * (l + 1) + m] += Le * sh * delta;// 黎曼和求积分
+							// GetIndex(l, m);
+							SHCoeffiecents[l * (l + 1) + m] += Le * sh * delta; // 黎曼和求积分
 						}
 					}
 				}
@@ -168,7 +170,7 @@ public:
 		Interreflection = 2
 	};
 
-	PRTIntegrator(const PropertyList& props)
+	PRTIntegrator(const PropertyList &props)
 	{
 		/* No parameters this time */
 		m_SampleCount = props.getInteger("PRTSampleCount", 100);
@@ -193,7 +195,7 @@ public:
 		}
 	}
 
-	virtual void preprocess(const Scene* scene) override
+	virtual void preprocess(const Scene *scene) override
 	{
 
 		// Here only compute one mesh
@@ -220,87 +222,72 @@ public:
 		fout << mesh->getVertexCount() << std::endl;
 		for (int i = 0; i < mesh->getVertexCount(); i++)
 		{
-			const Point3f& v = mesh->getVertexPositions().col(i);
-			const Normal3f& n = mesh->getVertexNormals().col(i);// 表面法线
-			auto shFunc = [&](double phi, double theta) -> double {
+			const Point3f &v = mesh->getVertexPositions().col(i);
+			const Normal3f &n = mesh->getVertexNormals().col(i);
+			auto shFunc = [&](double phi, double theta) -> double
+			{
 				Eigen::Array3d d = sh::ToVector(phi, theta);
-				const auto wi = Vector3f(d.x(), d.y(), d.z());// 采样向量
+				const auto wi = Vector3f(d.x(), d.y(), d.z());
 				if (m_Type == Type::Unshadowed)
 				{
 					// TODO: here you need to calculate unshadowed transport term of a given direction
 					// TODO: 此处你需要计算给定方向下的unshadowed传输项球谐函数值
-					double H = wi.dot(n);
-					return (H > 0) ? H : 0;
+					return std::max(float(0.), wi.dot(n));
 				}
-				else // shadowed or interreflection
+				else
 				{
 					// TODO: here you need to calculate shadowed transport term of a given direction
 					// TODO: 此处你需要计算给定方向下的shadowed传输项球谐函数值
 					double H = wi.dot(n);
-					if (H > 0) {
-						bool isVisable = !(scene->rayIntersect(Ray3f(v, wi.normalized())));// 从render point，沿采样向量
-						return (isVisable) ? H : 0;
-					}
-					else
-						return 0;
-					//double H = wi.dot(n);
-					//int isVisable = (!scene->rayIntersect(Ray3f(v, wi))) ? 0 : 1;
-					//return (H > 0) ? H * isVisable : 0;
+					return (H > 0 && !(scene->rayIntersect(Ray3f(v, wi.normalized())))) ? H : 0;
 				}
 			};
 			auto shCoeff = sh::ProjectFunction(SHOrder, shFunc, m_SampleCount);
 			for (int j = 0; j < shCoeff->size(); j++)
 			{
-				m_TransportSHCoeffs.col(i).coeffRef(j) = (*shCoeff)[j];
+				m_TransportSHCoeffs.col(i).coeffRef(j) = (*shCoeff)[j] / M_PI;
 			}
 		}
 
 		if (m_Type == Type::Interreflection)
 		{
-			for (int i = 0; i < mesh->getVertexCount(); i++) {
-				//const Point3f& v = mesh->getVertexPositions().col(i);
-				//Point3f& v = vv;
-				Point3f v = mesh->getVertexPositions().col(i);
+			for (int k = 0; k < m_Bounce; k++)
+			{
 
-				const Normal3f& n = mesh->getVertexNormals().col(i);
-				auto shFunc = [&](double phi, double theta) -> double {// 对半球积分，即求黎曼和
-					Eigen::Array3d d = sh::ToVector(phi, theta);
-					const auto wi = Vector3f(d.x(), d.y(), d.z());// 采样向量
-					//Point3f vv;
-					for (int k = 0; k < m_Bounce; k++) {
-						double H = wi.dot(n);
-						if (H > 0) {
-							Intersection its;
-							if (scene->rayIntersect(Ray3f(v, wi), its)) {
-								const Vector3f& bary = its.bary;//用重心坐标插值交点处的球谐系数
-
-								if (k + 1 < m_Bounce) {//迭代  [顶点,值]buffer
-									/*auto ne = bary.x() * mesh->getVertexPositions().col(its.tri_index.x()) +
-										bary.y() * mesh->getVertexPositions().col(its.tri_index.y()) +
-										bary.z() * mesh->getVertexPositions().col(its.tri_index.z());*/
-										v = its.p;
-								}
-								else {
-									for (int j = 0; j < SHCoeffLength; j++) {
-										Vector3f shCoeff = Vector3f(m_TransportSHCoeffs.col(its.tri_index.x()).coeffRef(j), m_TransportSHCoeffs.col(its.tri_index.y()).coeffRef(j), m_TransportSHCoeffs.col(its.tri_index.z()).coeffRef(j));
-										m_TransportSHCoeffs.col(i).coeffRef(j) = bary.dot(shCoeff);
-									}
-								}
-
-							}
-							else {
-								return H;
-							}
-						}
-						else
-							return 0;
-					}
-				};
-
-				auto shCoeff = sh::ProjectFunction(SHOrder, shFunc, m_SampleCount);
-				for (int j = 0; j < shCoeff->size(); j++)
+				for (int i = 0; i < mesh->getVertexCount(); i++)
 				{
-					m_TransportSHCoeffs.col(i).coeffRef(j) = (*shCoeff)[j];
+					Point3f v = mesh->getVertexPositions().col(i);
+
+					const Normal3f &n = mesh->getVertexNormals().col(i);
+					std::vector<double> res(SHCoeffLength, 0);
+					auto shFunc = [&](double phi, double theta) -> std::vector<double>
+					{
+						Eigen::Array3d d = sh::ToVector(phi, theta);
+						auto wi = Vector3f(d.x(), d.y(), d.z()).normalized();
+						Intersection its;
+
+						auto H = wi.dot(n); // std::max(float(0.), wi.dot(n));
+						if (H > 0 && scene->rayIntersect(Ray3f(v, wi), its))
+						{
+							const Vector3f &bary = its.bary;
+							for (int j = 0; j < SHCoeffLength; j++)
+							{
+								auto indirectSH = bary.x() * m_TransportSHCoeffs.col(its.tri_index.x()).coeffRef(j) + bary.y() * m_TransportSHCoeffs.col(its.tri_index.y()).coeffRef(j) + bary.z() * m_TransportSHCoeffs.col(its.tri_index.z()).coeffRef(j);
+								res[j] += indirectSH * H;
+							}
+							// 交点的Lds
+
+							// v = its.p;
+						}
+
+						return res;
+					};
+
+					auto shCoeff = sh::ProjectFunctionCustom(SHOrder, shFunc, m_SampleCount);
+					for (int j = 0; j < shCoeff->size(); j++)
+					{
+						m_TransportSHCoeffs.col(i).coeffRef(j) += (*shCoeff)[j] / M_PI;
+					}
 				}
 			}
 		}
@@ -308,7 +295,7 @@ public:
 		// Save in face format
 		for (int f = 0; f < mesh->getTriangleCount(); f++)
 		{
-			const MatrixXu& F = mesh->getIndices();
+			const MatrixXu &F = mesh->getIndices();
 			uint32_t idx0 = F(0, f), idx1 = F(1, f), idx2 = F(2, f);
 			for (int j = 0; j < SHCoeffLength; j++)
 			{
@@ -327,10 +314,11 @@ public:
 			fout << std::endl;
 		}
 		std::cout << "Computed SH coeffs"
-			<< " to: " << transPath.str() << std::endl;
+				  << " to: " << transPath.str() << std::endl;
 	}
 
-	Color3f Li(const Scene* scene, Sampler* sampler, const Ray3f& ray) const
+	Color3f
+	Li(const Scene *scene, Sampler *sampler, const Ray3f &ray) const
 	{
 		Intersection its;
 
@@ -338,15 +326,15 @@ public:
 			return Color3f(0.0f);
 
 		const Eigen::Matrix<Vector3f::Scalar, SHCoeffLength, 1> sh0 = m_TransportSHCoeffs.col(its.tri_index.x()),
-			sh1 = m_TransportSHCoeffs.col(its.tri_index.y()),
-			sh2 = m_TransportSHCoeffs.col(its.tri_index.z());
+																sh1 = m_TransportSHCoeffs.col(its.tri_index.y()),
+																sh2 = m_TransportSHCoeffs.col(its.tri_index.z());
 		const Eigen::Matrix<Vector3f::Scalar, SHCoeffLength, 1> rL = m_LightCoeffs.row(0), gL = m_LightCoeffs.row(1), bL = m_LightCoeffs.row(2);
 
 		Color3f c0 = Color3f(rL.dot(sh0), gL.dot(sh0), bL.dot(sh0)),
-			c1 = Color3f(rL.dot(sh1), gL.dot(sh1), bL.dot(sh1)),
-			c2 = Color3f(rL.dot(sh2), gL.dot(sh2), bL.dot(sh2));
+				c1 = Color3f(rL.dot(sh1), gL.dot(sh1), bL.dot(sh1)),
+				c2 = Color3f(rL.dot(sh2), gL.dot(sh2), bL.dot(sh2));
 
-		const Vector3f& bary = its.bary;//重心
+		const Vector3f &bary = its.bary; // 重心
 		Color3f c = bary.x() * c0 + bary.y() * c1 + bary.z() * c2;
 		// TODO: you need to delete the following four line codes after finishing your calculation to SH,
 		//       we use it to visualize the normals of model for debug.
@@ -368,8 +356,8 @@ private:
 	int m_Bounce = 1;
 	int m_SampleCount = 100;
 	std::string m_CubemapPath;
-	Eigen::MatrixXf m_TransportSHCoeffs;// 传输项系数，，(l+1)^2 x 顶点数量，每列存储第j个顶点的系数（非rgb值）
-	Eigen::MatrixXf m_LightCoeffs;// 环境光系数，3 x (l+1)^2矩阵每列存储系数rgb值
+	Eigen::MatrixXf m_TransportSHCoeffs; // 传输项系数，，(l+1)^2 x 顶点数量，每列存储第j个顶点的系数（非rgb值）
+	Eigen::MatrixXf m_LightCoeffs;		 // 环境光系数，3 x (l+1)^2矩阵每列存储系数rgb值
 };
 
 NORI_REGISTER_CLASS(PRTIntegrator, "prt");

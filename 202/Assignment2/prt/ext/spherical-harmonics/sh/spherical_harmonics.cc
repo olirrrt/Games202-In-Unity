@@ -663,7 +663,53 @@ std::unique_ptr<std::vector<double>> ProjectFunction(
 
   return coeffs;
 }
+std::unique_ptr<std::vector<double>> ProjectFunctionCustom(
+    int order, const std::function<std::vector<double>(double, double)> func, int sample_count) {
+  CHECK(order >= 0, "Order must be at least zero.");
+  CHECK(sample_count > 0, "Sample count must be at least one.");
 
+  // This is the approach demonstrated in [1] and is useful for arbitrary
+  // functions on the sphere that are represented analytically.
+  const int sample_side = static_cast<int>(floor(sqrt(sample_count)));
+  std::unique_ptr<std::vector<double>> coeffs(new std::vector<double>());
+  coeffs->assign(GetCoefficientCount(order), 0.0);
+
+  // generate sample_side^2 uniformly and stratified samples over the sphere
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> rng(0.0, 1.0);
+  for (int t = 0; t < sample_side; t++) {
+    for (int p = 0; p < sample_side; p++) {
+      double alpha = (t + rng(gen)) / sample_side;
+      double beta = (p + rng(gen)) / sample_side;
+      // See http://www.bogotobogo.com/Algorithms/uniform_distribution_sphere.php
+      double phi = 2.0 * M_PI * beta;
+      double theta = acos(2.0 * alpha - 1.0);
+
+      // evaluate the analytic function for the current spherical coords
+      std::vector<double> func_value = func(phi, theta);
+
+      // evaluate the SH basis functions up to band O, scale them by the
+      // function's value and accumulate them over all generated samples
+      for (int l = 0; l <= order; l++) {
+        for (int m = -l; m <= l; m++) {
+         double sh = EvalSH(l, m, phi, theta);
+          (*coeffs)[GetIndex(l, m)] = func_value[GetIndex(l, m)] * sh;
+        }
+      }
+    }
+  }
+
+  // scale by the probability of a particular sample, which is
+  // 4pi/sample_side^2. 4pi for the surface area of a unit sphere, and
+  // 1/sample_side^2 for the number of samples drawn uniformly.
+  double weight = 4.0 * M_PI / (sample_side * sample_side);
+  for (unsigned int i = 0; i < coeffs->size(); i++) {
+     (*coeffs)[i] *= weight;
+  }
+
+  return coeffs;
+}
 std::unique_ptr<std::vector<Eigen::Array3f>> ProjectEnvironment(
     int order, const Image& env) {
   CHECK(order >= 0, "Order must be at least zero.");

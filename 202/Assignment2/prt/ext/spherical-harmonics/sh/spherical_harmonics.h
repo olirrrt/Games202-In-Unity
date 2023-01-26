@@ -140,6 +140,9 @@ double EvalSHSlow(int l, int m, const Eigen::Vector3d& dir);
 std::unique_ptr<std::vector<double>> ProjectFunction(
     int order, const SphericalFunction& func, int sample_count);
 
+
+std::unique_ptr<std::vector<double>> ProjectFunctionCustom(
+    int order, const std::function<std::vector<double>(double, double)> func, int sample_count);
 // Fit the given environment map to the SH basis functions up to @order.
 // It is assumed that the environment map is parameterized by theta along
 // the x-axis (ranging from 0 to 2pi after normalizing out the resolution),
