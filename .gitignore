@@ -1,9 +1,8 @@
 prt/scenes
 .vscode/
 .vscode
-Assignment1
-Assignment5
 build
+examples
 .DS_Store
 .vsconfig
 # This .gitignore file should be placed at the root of your Unity project directory
