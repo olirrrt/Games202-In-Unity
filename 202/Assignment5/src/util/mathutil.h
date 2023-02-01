@@ -84,6 +84,10 @@ inline Float3 Clamp(const Float3 &v, const Float3 &l, const Float3 &r) {
     return Min(Max(v, l), r);
 }
 
+inline float Clamp(const float &v, const float &l, const float &r) {
+    return std::min(std::max(v, l), r);
+}
+
 inline float SqrLength(const Float3 &a) { return Sqr(a.x) + Sqr(a.y) + Sqr(a.z); }
 inline float Length(const Float3 &a) { return std::sqrt(Sqr(a.x) + Sqr(a.y) + Sqr(a.z)); }
 inline Float3 Normalize(const Float3 &a) { return a / Length(a); }

@@ -1,6 +1,9 @@
 #include "denoiser.h"
 
 Denoiser::Denoiser() : m_useTemportal(false) {}
+const int FILTER_SIZE = 19;
+const int offsets[19] = {-9, -8, -7, -6, -5, -4, -3, -2, -1, 0,
+                         1,  2,  3,  4,  5,  6,  7,  8,  9};
 
 void Denoiser::Reprojection(const FrameInfo &frameInfo) {
     int height = m_accColor.m_height;
@@ -14,14 +17,16 @@ void Denoiser::Reprojection(const FrameInfo &frameInfo) {
         for (int x = 0; x < width; x++) {
             // TODO: Reproject
             auto posWorld = frameInfo.m_position(x, y);
+            m_valid(x, y) = false;
             auto id = frameInfo.m_id(x, y);
+            if (id == -1)
+                continue;
             auto currWorldToCamera = Inverse(frameInfo.m_matrix[id]);
             auto type = Float3::EType::Point;
             auto preWorldToCamera = m_preFrameInfo.m_matrix[id];
             auto preScreenUV = preWorldToScreen(
                 preWorldToCamera(currWorldToCamera(posWorld, type), type), type);
 
-            m_valid(x, y) = false;
             if (preScreenUV.x <= width && preScreenUV.x >= 0. &&
                 preScreenUV.y <= height && preScreenUV.y >= 0.) {
                 // 上一帧在屏幕内
@@ -44,32 +49,37 @@ void Denoiser::TemporalAccumulation(const Buffer2D<Float3> &curFilteredColor) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // TODO: Temporal clamp
-            Float3 color = m_accColor(x, y);
+            if (!m_valid(x, y)) {
+                m_misc(x, y) = curFilteredColor(x, y);
+                continue;
+            }
+            Float3 color = Float3(0.);
             Float3 avg = Float3(0.);
             Float3 sigma = Float3(0.);
-            for (int i = 0; i < kernelRadius; i++) {
-                for (int j = 0; j < kernelRadius; j++) {
-                    avg += m_misc(x, y);
+            for (int i = 0; i < FILTER_SIZE; i++) {
+                for (int j = 0; j < FILTER_SIZE; j++) {
+                    auto x_i = Clamp(x + offsets[i], 0., width - 1);
+                    auto x_j = Clamp(y + offsets[j], 0., height - 1);
+                    avg += m_misc(x_i, x_j);
                 }
             }
-            avg /= kernelRadius * kernelRadius;
-            for (int i = 0; i < kernelRadius; i++) {
-                for (int j = 0; j < kernelRadius; j++) {
-                    auto tmp = m_misc(x, y) - avg;
-                    sigma += Float3(tmp.x * tmp.x, tmp.y * tmp.y, tmp.z * tmp.z);
+            avg /= FILTER_SIZE * FILTER_SIZE;
+            for (int i = 0; i < FILTER_SIZE; i++) {
+                for (int j = 0; j < FILTER_SIZE; j++) {
+                    auto x_i = Clamp(x + offsets[i], 0., width - 1);
+                    auto x_j = Clamp(y + offsets[j], 0., height - 1);
+                    sigma += Sqr(m_misc(x_i, x_j) - avg);
                 }
             }
-            sigma /= kernelRadius * kernelRadius;
+            sigma /= FILTER_SIZE * FILTER_SIZE;
             color = Clamp(color, avg - sigma * m_colorBoxK, avg + sigma * m_colorBoxK);
             // TODO: Exponential moving average
-            float alpha = (m_valid(x, y)) ? m_alpha : 1.0f;
-            m_misc(x, y) = Lerp(color, curFilteredColor(x, y), alpha);
+            m_misc(x, y) = Lerp(curFilteredColor(x, y), color, m_alpha);
         }
     }
     std::swap(m_misc, m_accColor);
 }
-const int FILTER_SIZE = 3;
-const int offsets[3] = {-1, 0, 1};
+
 Buffer2D<Float3> Denoiser::Filter(const FrameInfo &frameInfo) {
     int height = frameInfo.m_beauty.m_height;
     int width = frameInfo.m_beauty.m_width;
@@ -85,7 +95,6 @@ Buffer2D<Float3> Denoiser::Filter(const FrameInfo &frameInfo) {
             auto posWorld_i = frameInfo.m_position(x, y);
             Float3 res = Float3(0.);
             float wSum = 0.;
-            float kernel[3][3] = {0.};
             for (int i = 0; i < FILTER_SIZE; i++) {
                 for (int j = 0; j < FILTER_SIZE; j++) {
                     auto x_j = x + offsets[i];
@@ -99,29 +108,26 @@ Buffer2D<Float3> Denoiser::Filter(const FrameInfo &frameInfo) {
                                 (2 * m_sigmaCoord * m_sigmaCoord) -
                             pow(Distance(col_i, col_j), 2) /
                                 (2 * m_sigmaColor * m_sigmaColor) -
-                            pow(acos(Dot(normal_i, normal_j)), 2) /
+                            pow(SafeAcos(Dot(normal_i, normal_j)), 2) /
                                 (2 * m_sigmaNormal * m_sigmaNormal) -
                             pow(Dot(normal_i,
                                     (posWorld_j - posWorld_i) /
-                                        Max(0.001, Distance(posWorld_i, posWorld_j))),2) /
+                                        Max(0.001, Distance(posWorld_i, posWorld_j))),
+                                2) /
                                 (2 * m_sigmaPlane * m_sigmaPlane));
-                    kernel[i][j] = w;
+
+                    res += col_j * w;
                     wSum += w;
                 }
             }
 
-            if (wSum < 1e-6) {                
+            if (wSum < 1e-6) {
                 wSum = 1.;
-            } else {            
+            } else {
                 wSum = 1. / wSum;
             }
-            for (int i = 0; i < FILTER_SIZE; i++) {
-                for (int j = 0; j < FILTER_SIZE; j++) {
-                    res += frameInfo.m_beauty(x + offsets[i], y + offsets[j]) *
-                           kernel[i][j] * wSum; // 归一化
-                }
-            }
-            filteredImage(x, y) = res;
+
+            filteredImage(x, y) = res * wSum;
         }
     }
     return filteredImage;
@@ -145,8 +151,8 @@ Buffer2D<Float3> Denoiser::ProcessFrame(const FrameInfo &frameInfo) {
 
     // Reproject previous frame color to current
     if (m_useTemportal) {
-      //  Reprojection(frameInfo);
-     //   TemporalAccumulation(filteredColor);
+        Reprojection(frameInfo);
+        TemporalAccumulation(filteredColor);
     } else {
         Init(frameInfo, filteredColor);
     }
