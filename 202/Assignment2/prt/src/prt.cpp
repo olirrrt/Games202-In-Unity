@@ -14,17 +14,17 @@ NORI_NAMESPACE_BEGIN
 namespace ProjEnv
 {
 	std::vector<std::unique_ptr<float[]>>
-		LoadCubemapImages(const std::string& cubemapDir, int& width, int& height,
-			int& channel)
+	LoadCubemapImages(const std::string &cubemapDir, int &width, int &height,
+					  int &channel)
 	{
-		std::vector<std::string> cubemapNames{ "negx.jpg", "posx.jpg", "posy.jpg",
-											  "negy.jpg", "posz.jpg", "negz.jpg" };
+		std::vector<std::string> cubemapNames{"negx.jpg", "posx.jpg", "posy.jpg",
+											  "negy.jpg", "posz.jpg", "negz.jpg"};
 		std::vector<std::unique_ptr<float[]>> images(6);
 		for (int i = 0; i < 6; i++)
 		{
 			std::string filename = cubemapDir + "/" + cubemapNames[i];
 			int w, h, c;
-			float* image = stbi_loadf(filename.c_str(), &w, &h, &c, 3);
+			float *image = stbi_loadf(filename.c_str(), &w, &h, &c, 3);
 			if (!image)
 			{
 				std::cout << "Failed to load image: " << filename << std::endl;
@@ -58,7 +58,7 @@ namespace ProjEnv
 		{{1, 0, 0}, {0, -1, 0}, {0, 0, 1}},	  // posz
 	};
 
-	float CalcPreArea(const float& x, const float& y)
+	float CalcPreArea(const float &x, const float &y)
 	{
 		return std::atan2(x * y, std::sqrt(x * x + y * y + 1.0));
 	}
@@ -68,8 +68,8 @@ namespace ProjEnv
 	// 球谐系数：，具有旋转不变性
 	// 投影：离线预计算
 	// 重建：实时，丢失高频信息
-	float CalcArea(const float& u_, const float& v_, const int& width,
-		const int& height)
+	float CalcArea(const float &u_, const float &v_, const int &width,
+				   const int &height)
 	{
 		// transform from [0..res - 1] to [- (1 - 1 / res) .. (1 - 1 / res)]
 		// ( 0.5 is for texel center addressing)
@@ -87,7 +87,7 @@ namespace ProjEnv
 		float x1 = u + invResolutionW;
 		float y1 = v + invResolutionH;
 		float angle = CalcPreArea(x0, y0) - CalcPreArea(x0, y1) -
-			CalcPreArea(x1, y0) + CalcPreArea(x1, y1);
+					  CalcPreArea(x1, y0) + CalcPreArea(x1, y1);
 
 		return angle;
 	}
@@ -95,9 +95,9 @@ namespace ProjEnv
 	// template <typename T> T ProjectSH() {}
 
 	template <size_t SHOrder>
-	std::vector<Eigen::Array3f> PrecomputeCubemapSH(const std::vector<std::unique_ptr<float[]>>& images,
-		const int& width, const int& height,
-		const int& channel)
+	std::vector<Eigen::Array3f> PrecomputeCubemapSH(const std::vector<std::unique_ptr<float[]>> &images,
+													const int &width, const int &height,
+													const int &channel)
 	{
 		std::vector<Eigen::Vector3f> cubemapDirs;
 		cubemapDirs.reserve(6 * width * height);
@@ -134,7 +134,7 @@ namespace ProjEnv
 					Eigen::Vector3f dir = cubemapDirs[i * width * height + y * width + x]; // 第i张贴图(x,y)方向
 					int index = (y * width + x) * channel;
 					Eigen::Array3f Le(images[i][index + 0], images[i][index + 1],
-						images[i][index + 2]);
+									  images[i][index + 2]);
 
 					for (int l = 0; l < SHOrder; l++)
 					{
@@ -165,7 +165,7 @@ public:
 		Interreflection = 2
 	};
 
-	PRTIntegrator(const PropertyList& props)
+	PRTIntegrator(const PropertyList &props)
 	{
 		/* No parameters this time */
 		m_SampleCount = props.getInteger("PRTSampleCount", 100);
@@ -190,7 +190,7 @@ public:
 		}
 	}
 
-	virtual void preprocess(const Scene* scene) override
+	virtual void preprocess(const Scene *scene) override
 	{
 
 		// Here only compute one mesh
@@ -217,8 +217,8 @@ public:
 		fout << mesh->getVertexCount() << std::endl;
 		for (int i = 0; i < mesh->getVertexCount(); i++)
 		{
-			const Point3f& v = mesh->getVertexPositions().col(i);
-			const Normal3f& n = mesh->getVertexNormals().col(i);
+			const Point3f &v = mesh->getVertexPositions().col(i);
+			const Normal3f &n = mesh->getVertexNormals().col(i);
 			auto shFunc = [&](double phi, double theta) -> double
 			{
 				Eigen::Array3d d = sh::ToVector(phi, theta);
@@ -252,26 +252,25 @@ public:
 				for (int i = 0; i < mesh->getVertexCount(); i++)
 				{
 					Point3f v = mesh->getVertexPositions().col(i);
-
-					const Normal3f& n = mesh->getVertexNormals().col(i);
-					std::vector<double> res(SHCoeffLength, 0);
+					const Normal3f &n = mesh->getVertexNormals().col(i);
 					auto shFunc = [&](double phi, double theta) -> std::vector<double>
 					{
 						Eigen::Array3d d = sh::ToVector(phi, theta);
 						auto wi = Vector3f(d.x(), d.y(), d.z()).normalized();
 						Intersection its;
+						std::vector<double> res(SHCoeffLength, 0);
 
 						auto H = wi.dot(n);
 						if (H > 0 && scene->rayIntersect(Ray3f(v, wi), its))
 						{
-							const Vector3f& bary = its.bary;
+							const Vector3f &bary = its.bary;
 							for (int j = 0; j < SHCoeffLength; j++)
 							{
 								auto its_x = its.tri_index.x();
 								auto its_y = its.tri_index.y();
 								auto its_z = its.tri_index.z();
 								Vector3f sh = (bounce > 0) ? Vector3f(transportSHCoeffs[bounce - 1].col(its_x).coeffRef(j), transportSHCoeffs[bounce - 1].col(its_y).coeffRef(j), transportSHCoeffs[bounce - 1].col(its_z).coeffRef(j))
-									: Vector3f(m_TransportSHCoeffs.col(its_x).coeffRef(j), m_TransportSHCoeffs.col(its_y).coeffRef(j), m_TransportSHCoeffs.col(its_z).coeffRef(j));
+														   : Vector3f(m_TransportSHCoeffs.col(its_x).coeffRef(j), m_TransportSHCoeffs.col(its_y).coeffRef(j), m_TransportSHCoeffs.col(its_z).coeffRef(j));
 
 								auto indirectSH = bary.dot(sh);
 								res[j] = indirectSH * H;
@@ -295,7 +294,7 @@ public:
 		// Save in face format
 		for (int f = 0; f < mesh->getTriangleCount(); f++)
 		{
-			const MatrixXu& F = mesh->getIndices();
+			const MatrixXu &F = mesh->getIndices();
 			uint32_t idx0 = F(0, f), idx1 = F(1, f), idx2 = F(2, f);
 			for (int j = 0; j < SHCoeffLength; j++)
 			{
@@ -314,11 +313,11 @@ public:
 			fout << std::endl;
 		}
 		std::cout << "Computed SH coeffs"
-			<< " to: " << transPath.str() << std::endl;
+				  << " to: " << transPath.str() << std::endl;
 	}
 
 	Color3f
-		Li(const Scene* scene, Sampler* sampler, const Ray3f& ray) const
+	Li(const Scene *scene, Sampler *sampler, const Ray3f &ray) const
 	{
 		Intersection its;
 
@@ -326,15 +325,15 @@ public:
 			return Color3f(0.0f);
 
 		const Eigen::Matrix<Vector3f::Scalar, SHCoeffLength, 1> sh0 = m_TransportSHCoeffs.col(its.tri_index.x()),
-			sh1 = m_TransportSHCoeffs.col(its.tri_index.y()),
-			sh2 = m_TransportSHCoeffs.col(its.tri_index.z());
+																sh1 = m_TransportSHCoeffs.col(its.tri_index.y()),
+																sh2 = m_TransportSHCoeffs.col(its.tri_index.z());
 		const Eigen::Matrix<Vector3f::Scalar, SHCoeffLength, 1> rL = m_LightCoeffs.row(0), gL = m_LightCoeffs.row(1), bL = m_LightCoeffs.row(2);
 
 		Color3f c0 = Color3f(rL.dot(sh0), gL.dot(sh0), bL.dot(sh0)),
-			c1 = Color3f(rL.dot(sh1), gL.dot(sh1), bL.dot(sh1)),
-			c2 = Color3f(rL.dot(sh2), gL.dot(sh2), bL.dot(sh2));
+				c1 = Color3f(rL.dot(sh1), gL.dot(sh1), bL.dot(sh1)),
+				c2 = Color3f(rL.dot(sh2), gL.dot(sh2), bL.dot(sh2));
 
-		const Vector3f& bary = its.bary; // 重心
+		const Vector3f &bary = its.bary; // 重心
 		Color3f c = bary.x() * c0 + bary.y() * c1 + bary.z() * c2;
 		// TODO: you need to delete the following four line codes after finishing your calculation to SH,
 		//       we use it to visualize the normals of model for debug.
