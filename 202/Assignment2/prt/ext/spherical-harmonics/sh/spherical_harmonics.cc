@@ -687,6 +687,7 @@ std::unique_ptr<std::vector<double>> ProjectFunctionCustom(
       double theta = acos(2.0 * alpha - 1.0);
 
       // evaluate the analytic function for the current spherical coords
+      // 9个系数分别对应的值
       std::vector<double> func_value = func(phi, theta);
 
       // evaluate the SH basis functions up to band O, scale them by the
@@ -694,7 +695,7 @@ std::unique_ptr<std::vector<double>> ProjectFunctionCustom(
       for (int l = 0; l <= order; l++) {
         for (int m = -l; m <= l; m++) {
          double sh = EvalSH(l, m, phi, theta);
-          (*coeffs)[GetIndex(l, m)] = func_value[GetIndex(l, m)] * sh;
+          (*coeffs)[GetIndex(l, m)] += func_value[GetIndex(l, m)] * sh;
         }
       }
     }
