@@ -12,8 +12,8 @@ public class RSMPass : ScriptableRenderPass
 
     RenderTargetIdentifier colorBuffer, myBuffer;
     int myBufferID = Shader.PropertyToID("RSMDepthBuffer");
-    int lightVPMatID = Shader.PropertyToID("_light_MatrixVP");
-    int InvlightVPMatID = Shader.PropertyToID("_inverse_light_MatrixVP");
+    //  int lightVPMatID = Shader.PropertyToID("_light_MatrixVP");
+    //  int InvlightVPMatID = Shader.PropertyToID("_inverse_light_MatrixVP");
     int sizeID = Shader.PropertyToID("_RSMTextureSize");
     Material material;
 
@@ -23,11 +23,11 @@ public class RSMPass : ScriptableRenderPass
 
     Matrix4x4 mainLightMat;
     Transform light;
-
+    int size = 2048;
     public RSMPass(RSMFeature.PassSettings passSettings)
     {
         this.passSettings = passSettings;
-
+        this.size /= passSettings.downsample;
         renderPassEvent = passSettings.renderPassEvent;
         light = passSettings.light;
         if (material == null) material = CoreUtils.CreateEngineMaterial("Custom/RSMHandle-DNormal");
@@ -46,21 +46,24 @@ public class RSMPass : ScriptableRenderPass
         colorBuffer = renderingData.cameraData.renderer.cameraColorTarget;
 
         // 创建 temporary rt, 名字为myBufferID，指定render target
-        RenderTextureDescriptor descriptor = new() { width = 1024, height = 1024, colorFormat = RenderTextureFormat.ARGB32, msaaSamples = 1, dimension = TextureDimension.Tex2D };
+        RenderTextureDescriptor descriptor = new() { width = size, height = size, colorFormat = RenderTextureFormat.ARGB32, msaaSamples = 1, dimension = TextureDimension.Tex2D };
         cmd.GetTemporaryRT(myBufferID, descriptor, FilterMode.Bilinear);
         myBuffer = new RenderTargetIdentifier(myBufferID);
 
-        cmd.SetGlobalFloat(sizeID, 1024);
+        cmd.SetGlobalFloat(sizeID, size);
 
-        var viewMat = Matrix4x4.LookAt(light.position, light.position + light.forward, light.up);// light.localToWorldMatrix;
-        //ewMat = light.localToWorldMatrix;
+        //  var viewMat = Matrix4x4.LookAt(light.position, light.position + light.forward, light.up);// light.localToWorldMatrix;
+        //viewMat = light.localToWorldMatrix;
+        //  viewMat = renderingData.cullResults.visibleLights[0].localToWorldMatrix;
 
-        var s = 20;
-        var ortho = Matrix4x4.Ortho(-s, s, -s, s, 0.2f, s);
+        //  var s = 10;
+        //  var ortho = Matrix4x4.Ortho(-s, s, -s, s, 0.3f, 20.0f);
+        //   ortho = GL.GetGPUProjectionMatrix(ortho, true);
         //  Debug.Log(viewMat);
 
-        cmd.SetGlobalMatrix(lightVPMatID, ortho * viewMat);
-        cmd.SetGlobalMatrix(InvlightVPMatID, Matrix4x4.Inverse(ortho * viewMat));
+        //   cmd.SetGlobalMatrix(lightVPMatID, ortho * viewMat);
+        //   cmd.SetGlobalMatrix(InvlightVPMatID, Matrix4x4.Inverse(ortho * viewMat));
+        //Debug.Log(renderingData.cullResults.visibleLights[0].localToWorldMatrix);
 
         // 指定渲染到哪里
         ConfigureTarget(myBuffer);

@@ -8,7 +8,7 @@ public class RSMFeature : ScriptableRendererFeature
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPrePasses;
 
-        [Range(1, 4)] public int downsample = 1;
+        [Range(1, 8)] public int downsample = 8;
         public Transform light;
     }
 

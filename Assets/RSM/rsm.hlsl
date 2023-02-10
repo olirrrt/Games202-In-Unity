@@ -43,6 +43,19 @@ SAMPLER(sampler_RSMFlux);
 float4x4 _light_MatrixVP;
 float4x4 _inverse_light_MatrixVP;
 
+float Rand1(inout float p)
+{
+    p = frac(p * .1031);
+    p *= p + 33.33;
+    p *= p + p;
+    return frac(p);
+}
+
+float2 Rand2(inout float p)
+{
+    return float2(Rand1(p), Rand1(p));
+}
+
 // TransformWorldToShadowCoord(vertexInput.positionWS);
 half4 rsm(float3 p_pos, float3 p_normal)
 {
@@ -71,6 +84,7 @@ half4 rsm(float3 p_pos, float3 p_normal)
             float4 q_flux = SAMPLE_TEXTURE2D(_RSMFlux, sampler_RSMFlux, uv);
             
             col += q_flux * max(0, dot(p_normal, normalize(q_pos - p_pos))) * max(0, dot(q_normal, normalize(p_pos - q_pos))) / pow(distance(p_pos, q_pos), 2);
+          //  col += q_flux;
             num++;
         }
     }
@@ -81,17 +95,24 @@ half4 rsm(float3 p_pos, float3 p_normal)
 
 half4 frag(Varyings IN) : SV_Target
 {
+    float d = IN.positionHCS.z / IN.positionHCS.w;
+   // 
+    float4 shadowCoord = mul(_light_MatrixVP, float4(IN.positionWS, 1));
+    shadowCoord.xyz /= shadowCoord.w;
+    shadowCoord.xy *= 0.5;
+    shadowCoord.xy += 0.5;
+    d = shadowCoord.z;
+    return shadowCoord;
+    return half4(d, d, d, 1);
     return rsm(IN.positionWS, IN.normalWS);
     // Defining the color variable and returning it.
    /* half4 customColor = 0;
     half2 uv = IN.positionHCS / _ScaledScreenParams.xy;
     
-    float4 shadowCoord = mul(_light_MatrixVP, float4(IN.positionWS, 1));
-    shadowCoord.xyz /= shadowCoord.w;
-    shadowCoord.xy *= 0.5;
-    shadowCoord.xy += 0.5;
+   
     uv = shadowCoord.xy;
     customColor = SAMPLE_TEXTURE2D(_RSMFlux, sampler_RSMFlux, uv);
     customColor = SAMPLE_TEXTURE2D(_RSMDepthNormal, sampler_RSMDepthNormal, uv);*/
-  //  return customColor;
+  //  return customColor; 
+
 }

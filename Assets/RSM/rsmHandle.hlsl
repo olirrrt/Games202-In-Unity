@@ -21,6 +21,7 @@ struct Varyings
     float3 positionWS : TEXCOORD1;
     half3 tangentWS : TEXCOORD2;
     float2 uv : TEXCOORD3;
+    float depth : TEXCOORD4;
 };
 
 float4x4 _light_MatrixVP;
@@ -38,20 +39,21 @@ Varyings vert(Attributes IN)
 
    // float4 positionCS = mul(_MainLightWorldToShadow[0], float4(positionWS, 1));
    // light_MatrixVP = unity_MatrixVP;
-    _light_MatrixVP[1] *= float4(-1, -1, -1, -1);
+   // _light_MatrixVP[1] *= float4(-1, -1, -1, -1);
     float4 positionCS = mul(_light_MatrixVP, float4(positionWS, 1));
-
-#if UNITY_REVERSED_Z
-    _light_MatrixVP[2] *= float4(-1,-1,-1,-1);
-#endif
-
-/* 
+   
+    OUT.depth = positionCS.z / positionCS.w;
+//#if UNITY_REVERSED_Z
+  //  _light_MatrixVP[2] *= float4(-1,-1,-1,-1);
+//#endif
+    
+ 
 #if UNITY_REVERSED_Z
     positionCS.z = min(positionCS.z, UNITY_NEAR_CLIP_VALUE);
 #else
     positionCS.z = max(positionCS.z, UNITY_NEAR_CLIP_VALUE);
 #endif
-*/
+    
    // OUT.positionHCS = TransformWorldToShadowCoord(positionWS);//positionCS; 
     OUT.positionHCS = positionCS;
 
@@ -68,15 +70,27 @@ Varyings vert(Attributes IN)
 
 half4 frag(Varyings IN) : SV_Target
 {
+   // float3 tmp = mul(UNITY_MATRIX_P, IN.positionWS);
+   // return half4(tmp, 1);
     IN.normalWS = normalize(IN.normalWS);
     half3 nor = IN.normalWS * 0.5 + 0.5;
-    half3 pos = IN.positionWS * 0.5 + 0.5;
-    half depth = IN.positionHCS.z;
-    half4 customColor; // = half4(1, 0.5, 0.5, 1);
-    customColor = half4(nor.x, nor.y, nor.z, depth);
-    //customColor = half4(pos.x, pos.y, pos.z, 1);
-//customColor = half4(depth, depth, depth, 1);
-    return customColor;
+  //  return half4(IN.depth, 0, 0, 1);
+   // half depth = IN.positionHCS.z;
+
+    half depth = IN.positionHCS.z / IN.positionHCS.w;
+#if UNITY_REVERSED_Z // yes
+    depth = 1 - depth;
+#else  
+    depth = depth * 0.5 + 0.5;
+#endif
+   /* if (depth == 1)
+        return half4(1, 0, 0, 1);
+    else if (depth > 1)
+        return half4(0, 1, 0, 1);
+    else if (depth > 0.97)
+        return half4(0, 0, 1, 1);*/
+    return half4(depth, 0, 0, 1);
+    return half4(nor.x, nor.y, nor.z, depth);
 }
 
 half4 fluxFrag(Varyings IN) : SV_Target

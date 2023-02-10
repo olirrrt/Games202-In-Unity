@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3362d5c587af9934588ea51e186871ea, type: 3}
   m_Name: RSMFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   passSettings:
     renderPassEvent: 150
     downsample: 1

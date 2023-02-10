@@ -20,11 +20,11 @@ public class RSMPassFlux : ScriptableRenderPass
     FilteringSettings filteringSettings = new(RenderQueueRange.opaque);
 
     Matrix4x4 mainLightMat;
-
+    int size = 2048;
     public RSMPassFlux(RSMFeature.PassSettings passSettings)
     {
         this.passSettings = passSettings;
-
+        this.size /= passSettings.downsample;
         renderPassEvent = passSettings.renderPassEvent;
 
 
@@ -43,7 +43,7 @@ public class RSMPassFlux : ScriptableRenderPass
         colorBuffer = renderingData.cameraData.renderer.cameraColorTarget;
 
         // 创建 temporary rt, 名字为myBufferID，指定render target
-        RenderTextureDescriptor descriptor = new() { width = 2048, height = 2048, colorFormat = RenderTextureFormat.ARGB32, msaaSamples = 1, dimension = TextureDimension.Tex2D };
+        RenderTextureDescriptor descriptor = new() { width = size, height = size, colorFormat = RenderTextureFormat.ARGB32, msaaSamples = 1, dimension = TextureDimension.Tex2D };
         cmd.GetTemporaryRT(myBufferID, descriptor, FilterMode.Bilinear);
         myBuffer = new RenderTargetIdentifier(myBufferID);
 
