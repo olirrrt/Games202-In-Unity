@@ -6,70 +6,48 @@ using System.Collections.Generic;
 
 public class RSMPass : ScriptableRenderPass
 {
-    const string ProfilerTag = "RSM Pass";
+    const string ProfilerTag = "RSM PrePass";
 
     RSMFeature.PassSettings passSettings;
 
     RenderTargetIdentifier colorBuffer, myBuffer;
-    int myBufferID = Shader.PropertyToID("RSMDepthBuffer");
-    //  int lightVPMatID = Shader.PropertyToID("_light_MatrixVP");
-    //  int InvlightVPMatID = Shader.PropertyToID("_inverse_light_MatrixVP");
-    int sizeID = Shader.PropertyToID("_RSMTextureSize");
+    readonly int myBufferID = Shader.PropertyToID("RSMDepthBuffer");
+    readonly int sizeID = Shader.PropertyToID("_RSMTextureSize");
+
     Material material;
 
-    List<ShaderTagId> shaderTags = new() { new ShaderTagId("UniversalForward"), new ShaderTagId("SRPDefaultUnlit") };
+    List<ShaderTagId> shaderTags = new() { new ShaderTagId("UniversalForward") };
     DrawingSettings drawingSettings;
     FilteringSettings filteringSettings = new(RenderQueueRange.opaque);
 
-    Matrix4x4 mainLightMat;
-    Transform light;
-    int size = 2048;
+    int size;
+
     public RSMPass(RSMFeature.PassSettings passSettings)
     {
         this.passSettings = passSettings;
-        this.size /= passSettings.downsample;
+        this.size = passSettings.size;
         renderPassEvent = passSettings.renderPassEvent;
-        light = passSettings.light;
-        if (material == null) material = CoreUtils.CreateEngineMaterial("Custom/RSMHandle-DNormal");
-
-
+        if (material == null) material = CoreUtils.CreateEngineMaterial("Custom/RSMPrePass");
     }
 
 
     // 初始化相机参数
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
     {
-        // Grab the camera target descriptor. We will use this when creating a temporary render texture.
-        RenderTextureDescriptor defalut = renderingData.cameraData.cameraTargetDescriptor;
-
-        // Grab the color buffer from the renderer camera color target.
-        colorBuffer = renderingData.cameraData.renderer.cameraColorTarget;
+        // RenderTextureDescriptor defalut = renderingData.cameraData.cameraTargetDescriptor;
 
         // 创建 temporary rt, 名字为myBufferID，指定render target
-        RenderTextureDescriptor descriptor = new() { width = size, height = size, colorFormat = RenderTextureFormat.ARGB32, msaaSamples = 1, dimension = TextureDimension.Tex2D };
+        var descriptor = new RenderTextureDescriptor(size,size, RenderTextureFormat.ARGB32,32,1);
+         
         cmd.GetTemporaryRT(myBufferID, descriptor, FilterMode.Bilinear);
         myBuffer = new RenderTargetIdentifier(myBufferID);
 
         cmd.SetGlobalFloat(sizeID, size);
 
-        //  var viewMat = Matrix4x4.LookAt(light.position, light.position + light.forward, light.up);// light.localToWorldMatrix;
-        //viewMat = light.localToWorldMatrix;
-        //  viewMat = renderingData.cullResults.visibleLights[0].localToWorldMatrix;
-
-        //  var s = 10;
-        //  var ortho = Matrix4x4.Ortho(-s, s, -s, s, 0.3f, 20.0f);
-        //   ortho = GL.GetGPUProjectionMatrix(ortho, true);
-        //  Debug.Log(viewMat);
-
-        //   cmd.SetGlobalMatrix(lightVPMatID, ortho * viewMat);
-        //   cmd.SetGlobalMatrix(InvlightVPMatID, Matrix4x4.Inverse(ortho * viewMat));
-        //Debug.Log(renderingData.cullResults.visibleLights[0].localToWorldMatrix);
-
         // 指定渲染到哪里
         ConfigureTarget(myBuffer);
         Configure(cmd, descriptor);
     }
-
 
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
@@ -85,12 +63,11 @@ public class RSMPass : ScriptableRenderPass
             drawingSettings.overrideMaterial = material;
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
 
-
-            cmd.SetGlobalTexture("_RSMDepthNormal", myBuffer);
+              cmd.SetGlobalTexture("_RSMDepthNormal", myBuffer);
 
         }
-        //  cmd.ClearRenderTarget(true, true, Color.black);
-        // Execute the command buffer and release it.
+
+         // Execute the command buffer and release it.
         context.ExecuteCommandBuffer(cmd);
         CommandBufferPool.Release(cmd);
     }

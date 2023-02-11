@@ -4,20 +4,17 @@
 public class RSMHandle : MonoBehaviour
 {
     Camera virtualCam;
-    // public Light mainLight;
-    int lightVPMatID = Shader.PropertyToID("_light_MatrixVP");
-    int InvlightVPMatID = Shader.PropertyToID("_inverse_light_MatrixVP");
+
+    readonly int lightVPMatID = Shader.PropertyToID("_light_MatrixVP");
+    readonly int InvlightVPMatID = Shader.PropertyToID("_inverse_light_MatrixVP");
 
     void UpdateLightMatVP(Camera camera)
     {
-        // ？设置为true会原点上下颠倒，d3d原点在左上, 否则会近远平面颠倒
+
         var matVP = GL.GetGPUProjectionMatrix(camera.projectionMatrix, true) * camera.worldToCameraMatrix;
-        // matVP.SetRow(1, -1 * matVP.GetRow(1));
 
         Shader.SetGlobalMatrix(lightVPMatID, matVP);
         Shader.SetGlobalMatrix(InvlightVPMatID, Matrix4x4.Inverse(matVP));
-        Debug.Log(matVP);
-        Debug.Log(GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, false));
     }
 
     void InitCamera()
@@ -25,20 +22,20 @@ public class RSMHandle : MonoBehaviour
         if (virtualCam == null)
             virtualCam = this.GetComponent<Camera>();
         virtualCam.orthographic = true;
-        // virtualCam.enabled = true;
-        virtualCam.orthographicSize = 3.0f;
+        virtualCam.enabled = false;
+        virtualCam.orthographicSize = 2.0f;
         virtualCam.aspect = 1.0f;
-        virtualCam.farClipPlane = 500;
-        UpdateLightMatVP(virtualCam);
+        virtualCam.farClipPlane = 8;
     }
 
     private void Start()
     {
         InitCamera();
+        UpdateLightMatVP(virtualCam);
     }
 
     private void Update()
     {
-        InitCamera();
+        UpdateLightMatVP(virtualCam);
     }
 }

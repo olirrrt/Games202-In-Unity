@@ -1,15 +1,16 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
-public class RSMFeature : ScriptableRendererFeature
+public class RSMFeature: ScriptableRendererFeature
 {
     [System.Serializable]
     public class PassSettings
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPrePasses;
 
-        [Range(1, 8)] public int downsample = 8;
-        public Transform light;
+        [Range(1, 16)] public int downsample = 8;
+
+        public int size { get { return 2048 / downsample; } }
     }
 
     RSMPass pass;
@@ -36,6 +37,6 @@ public class RSMFeature : ScriptableRendererFeature
         // Here you can queue up multiple passes after each other.
         renderer.EnqueuePass(pass);
         renderer.EnqueuePass(passFlux);
-
     }
+
 }
