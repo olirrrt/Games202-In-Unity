@@ -14,6 +14,8 @@ public class SSGIPass : ScriptableRenderPass
     readonly int sampleNumID = Shader.PropertyToID("_Sample_Num");
     readonly int rayMarchStepID = Shader.PropertyToID("_Step");
     readonly int matrixVPID = Shader.PropertyToID("_my_matrixVP");
+    readonly int matrixInvVPID = Shader.PropertyToID("_my_matrixInvVP");
+
     SSGIFeature.PassSettings passSettings;
 
     Material material;
@@ -48,6 +50,7 @@ public class SSGIPass : ScriptableRenderPass
 
         var matVP = GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, true) * Camera.main.worldToCameraMatrix;
         material.SetMatrix(matrixVPID, matVP); //?设置自定义矩阵，unity_i_vp也自动更新了
+        material.SetMatrix(matrixInvVPID, Matrix4x4.Inverse(matVP)); //?设置自定义矩阵，unity_i_vp也自动更新了
 
         material.SetInt(rayMarchSampleNumID, passSettings.RayMarchSampleNum);
         material.SetInt(sampleNumID, passSettings.IndirectLightSampleNum);
@@ -69,7 +72,9 @@ public class SSGIPass : ScriptableRenderPass
             cmd.Clear();
 
             Blit(cmd, colorBuffer, myBuffer, material, 0);
-            Blit(cmd, myBuffer, colorBuffer, blendMaterial, 0);
+            Blit(cmd, myBuffer, colorBuffer);
+
+          // Blit(cmd, myBuffer, colorBuffer, blendMaterial, 0);
         }
 
         // Execute the command buffer and release it.

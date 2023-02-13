@@ -15,8 +15,9 @@ MonoBehaviour:
   m_Active: 1
   passSettings:
     renderPassEvent: 550
-    downsample: 8
-    sampleRadius: 0.2
+    RayMarchSampleNum: 250
+    RayMarchStep: 0.4
+    IndirectLightSampleNum: 15
 --- !u!114 &-717247620320984785
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -8,7 +8,7 @@ public class SSGIFeature : ScriptableRendererFeature
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
 
-        [Range(1, 250)] public int RayMarchSampleNum = 50;
+        [Range(0, 250)] public int RayMarchSampleNum = 50;
         [Range(0, 10)] public float RayMarchStep = 0.5f;
         [Range(1, 100)] public int IndirectLightSampleNum = 10;
 
