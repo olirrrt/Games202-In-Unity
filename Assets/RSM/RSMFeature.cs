@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
-public class RSMFeature: ScriptableRendererFeature
+public class RSMFeature : ScriptableRendererFeature
 {
     [System.Serializable]
     public class PassSettings
@@ -9,7 +9,7 @@ public class RSMFeature: ScriptableRendererFeature
         public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPrePasses;
 
         [Range(1, 16)] public int downsample = 8;
-
+        [Range(0, 1)] public float sampleRadius = 0.2f;
         public int size { get { return 2048 / downsample; } }
     }
 

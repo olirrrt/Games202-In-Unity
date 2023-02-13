@@ -13,6 +13,7 @@ public class RSMPass : ScriptableRenderPass
     RenderTargetIdentifier colorBuffer, myBuffer;
     readonly int myBufferID = Shader.PropertyToID("RSMDepthBuffer");
     readonly int sizeID = Shader.PropertyToID("_RSMTextureSize");
+    readonly int sampleRadiusID = Shader.PropertyToID("_sampleRadiusID");
 
     Material material;
 
@@ -21,11 +22,13 @@ public class RSMPass : ScriptableRenderPass
     FilteringSettings filteringSettings = new(RenderQueueRange.opaque);
 
     int size;
+    float sampleRadius;
 
     public RSMPass(RSMFeature.PassSettings passSettings)
     {
         this.passSettings = passSettings;
         this.size = passSettings.size;
+        this.sampleRadius = passSettings.sampleRadius;
         renderPassEvent = passSettings.renderPassEvent;
         if (material == null) material = CoreUtils.CreateEngineMaterial("Custom/RSMPrePass");
     }
@@ -37,12 +40,13 @@ public class RSMPass : ScriptableRenderPass
         // RenderTextureDescriptor defalut = renderingData.cameraData.cameraTargetDescriptor;
 
         // 创建 temporary rt, 名字为myBufferID，指定render target
-        var descriptor = new RenderTextureDescriptor(size,size, RenderTextureFormat.ARGB32,32,1);
-         
+        var descriptor = new RenderTextureDescriptor(size, size, RenderTextureFormat.ARGB32, 32, 1);
+
         cmd.GetTemporaryRT(myBufferID, descriptor, FilterMode.Bilinear);
         myBuffer = new RenderTargetIdentifier(myBufferID);
 
         cmd.SetGlobalFloat(sizeID, size);
+        cmd.SetGlobalFloat(sampleRadiusID, sampleRadius);
 
         // 指定渲染到哪里
         ConfigureTarget(myBuffer);
@@ -63,11 +67,11 @@ public class RSMPass : ScriptableRenderPass
             drawingSettings.overrideMaterial = material;
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
 
-              cmd.SetGlobalTexture("_RSMDepthNormal", myBuffer);
+            cmd.SetGlobalTexture("_RSMDepthNormal", myBuffer);
 
         }
 
-         // Execute the command buffer and release it.
+        // Execute the command buffer and release it.
         context.ExecuteCommandBuffer(cmd);
         CommandBufferPool.Release(cmd);
     }

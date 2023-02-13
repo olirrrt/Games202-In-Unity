@@ -52,6 +52,7 @@ Shader "Custom/RSM"
 
             #include "rsmPrePass.hlsl"
          
+         
             ENDHLSL
         }
     }

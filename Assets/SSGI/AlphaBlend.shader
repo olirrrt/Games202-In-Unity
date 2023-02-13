@@ -1,4 +1,4 @@
-Shader "Custom/Hiz"
+Shader "Custom/Tool/AlphaBlend"
 {
     Properties
     {
@@ -8,7 +8,7 @@ Shader "Custom/Hiz"
     {
         // No culling or depth
         Cull Off ZWrite Off ZTest Always
-
+        Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {
             HLSLPROGRAM
@@ -43,18 +43,9 @@ Shader "Custom/Hiz"
 
             half4 frag (Varyings input) : SV_Target
             {
-                // 生成hi-z buffer，取周围4个点中距离最小的点
-                float2 offsets[4] = { float2(1, 1), float2(0, 1), float2(1, 0), float2(0, 0) };
-                float minDepth = 0;
-                for(int i = 0;i < 4; i++){
-                    float depth =  tex2D(_MainTex, input.uv + offsets[i] * _MainTex_TexelSize.xy);
-                    #if UNITY_REVERSED_Z
-                        minDepth = max(minDepth, depth);
-                    #else
-                        minDepth = min(minDepth, depth);
-                    #endif
-                }              
-                return half4(minDepth, 0, 0, 0);
+
+                half4 col =  tex2D(_MainTex, input.uv);
+                return col;
             }
             ENDHLSL
         }
