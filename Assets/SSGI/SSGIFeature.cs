@@ -10,8 +10,10 @@ public class SSGIFeature : ScriptableRendererFeature
 
         [Range(0, 250)] public int RayMarchSampleNum = 50;
         [Range(0, 10)] public float RayMarchStep = 0.5f;
-        [Range(1, 100)] public int IndirectLightSampleNum = 10;
 
+        [Range(0, 1000)] public float maxRayMarchLength = 100;
+
+        [Range(1, 100)] public int IndirectLightSampleNum = 10;
     }
 
     SSGIPass pass;

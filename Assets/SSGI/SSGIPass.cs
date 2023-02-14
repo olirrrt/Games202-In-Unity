@@ -15,6 +15,10 @@ public class SSGIPass : ScriptableRenderPass
     readonly int rayMarchStepID = Shader.PropertyToID("_Step");
     readonly int matrixVPID = Shader.PropertyToID("_my_matrixVP");
     readonly int matrixInvVPID = Shader.PropertyToID("_my_matrixInvVP");
+    readonly int matrixVID = Shader.PropertyToID("_my_matrixV");
+    readonly int matrixPID = Shader.PropertyToID("_my_matrixP");
+    readonly int matrixInvVID = Shader.PropertyToID("_my_matrixInvP");
+    readonly int maxMarchLenID = Shader.PropertyToID("_Max_Ray_March_Length");
 
     SSGIFeature.PassSettings passSettings;
 
@@ -51,11 +55,16 @@ public class SSGIPass : ScriptableRenderPass
         var matVP = GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, true) * Camera.main.worldToCameraMatrix;
         material.SetMatrix(matrixVPID, matVP); //?设置自定义矩阵，unity_i_vp也自动更新了
         material.SetMatrix(matrixInvVPID, Matrix4x4.Inverse(matVP)); //?设置自定义矩阵，unity_i_vp也自动更新了
+        material.SetMatrix(matrixVID, Camera.main.worldToCameraMatrix);
+        material.SetMatrix(matrixInvVID, Matrix4x4.Inverse(GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, true)));
+        material.SetMatrix(matrixPID, GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, true));
 
         material.SetInt(rayMarchSampleNumID, passSettings.RayMarchSampleNum);
         material.SetInt(sampleNumID, passSettings.IndirectLightSampleNum);
         material.SetFloat(rayMarchStepID, passSettings.RayMarchStep);
         //   Shader.SetGlobalMatrix("_unity_MatrixVP", matVP);
+
+        material.SetFloat(maxMarchLenID, passSettings.maxRayMarchLength);
 
         // 指定渲染到哪里
         ConfigureTarget(myBuffer);
@@ -74,7 +83,7 @@ public class SSGIPass : ScriptableRenderPass
             Blit(cmd, colorBuffer, myBuffer, material, 0);
             Blit(cmd, myBuffer, colorBuffer);
 
-          // Blit(cmd, myBuffer, colorBuffer, blendMaterial, 0);
+            // Blit(cmd, myBuffer, colorBuffer, blendMaterial, 0);
         }
 
         // Execute the command buffer and release it.
