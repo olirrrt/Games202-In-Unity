@@ -75,6 +75,10 @@ half4 RayMarch(float3 ro, float3 rd)
 #endif
         uv = uv * 0.5 + 0.5;
         
+        // 裁剪
+        if (uv.x < 0 || uv.y < 0 || uv.x >= 1 || uv.y >= 1)
+            return res;
+        
         float depth = SAMPLE_TEXTURE2D_LOD(_CameraDepthTexture, sampler_CameraDepthTexture, uv, 0).r;
         
 //#if UNITY_REVERSED_Z
@@ -88,8 +92,7 @@ half4 RayMarch(float3 ro, float3 rd)
         if (intersect)
         {
             //return half4(1, 0, 0, 1);
-            if (uv.x < 0 || uv.y < 0 || uv.x >= 1 || uv.y >= 1)
-                return res;
+           
 
             half4 col = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_MainTex, uv, 0);
             return col;
@@ -122,24 +125,50 @@ half4 SSR(float2 uv)
     return RayMarch(pos, R);
 }
 
-half4 RayMarchScreenSpace(float3 ro, float3 rd, float3 endPos)
+half4 RayMarchScreenSpace(float3 ro, float3 rd, float3 endPos, float2 z, float2 k)
 {
     half4 res = half4(0, 0, 0, 0);
-    float3 step = ((endPos - ro) / _RayMarch_Sample_Num);
-    float3 pos;
+    float2 delta = rd.xy - ro.xy;
+    bool permute = false;
+    if (abs(delta.x) < abs(delta.y))
+    {
+        permute = true;
+        delta = delta.yx;
+      //  ro.xy = ro.yx;
+      //  endPos.xy = endPos.yx;
+    }
+    float stepDir = sign(delta.x), invdx = stepDir / delta.x;
+    float stepZ = (z.y - z.x) * invdx; // max((y1 - y0), (x1 - x0))
+    float stepK = (k.y - k.x) * invdx; //  
+    float2 step = float2(stepDir, delta.y * invdx); // (1, slope)
+    float3 pos = ro, posK = k.x, posZ = z.x;
+    step *= _MainTex_TexelSize.xy;
+    float3 linearStep = float3(step, (endPos.z - ro.z) * invdx);
     for (int i = 1; i <= _RayMarch_Sample_Num; i++)
     {
-        pos = ro + step * rd * i;
-        float depth = SAMPLE_TEXTURE2D_LOD(_CameraDepthTexture, sampler_CameraDepthTexture, pos.xy, 0).r;
+      //  pos += step;
+        pos += linearStep;
+        posK += stepK;
+        posZ += stepZ;
+        
+        float rayLinearDepth = posZ / posK;
+        float2 uv = pos.xy;
+        float depth = SAMPLE_TEXTURE2D_LOD(_CameraDepthTexture, sampler_CameraDepthTexture, uv, 0).r;
+                // 裁剪
+        if (uv.x < 0 || uv.y < 0 || uv.x >= 1 || uv.y >= 1)
+            return half4(0, 1, 0, 0);
+      //  depth = LinearEyeDepth(depth, _ZBufferParams);
 //#if UNITY_REVERSED_Z
+         
+     //   bool intersect = depth - rayLinearDepth < 1e-6;
+      //  bool intersect = -depth + rayLinearDepth < 1e-6;
         bool intersect = depth - pos.z < 1e-6;
-      //  bool intersect = pos.z - depth < 1e-6;
 //#else
 //#endif
         if (intersect)
         {
-            return half4(1, 0, 0, 0);
-            return SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_MainTex, pos.xy, 0);
+            //return half4(1, 0, 0, 0);
+            return SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_MainTex, pos, 0);
         }
     }
     
@@ -164,22 +193,37 @@ half4 SSRScreenSpace(float2 uv)
     // NDC: xy[0,1], z[0,1]
     // CS: xy[-w,w], z[0,w] 透视除法后: xy[-1,1], z[0,1]
     float3 posNDC = float4(uv + 0.5 * _MainTex_TexelSize.xy, depth, 1);
-    float4 posCS = ComputeClipSpacePosition(posNDC.xy, posNDC.z); // 返回[-1,1]
 
-    float3 posVS = ComputeViewSpacePosition(posNDC.xy, posNDC.z, _my_matrixInvP);
+    //float4 posCS = ComputeClipSpacePosition(posNDC.xy, posNDC.z); // 返回 xy[-1,1] z[0,1]
+    float3 posWS = ComputeWorldSpacePosition(uv, depth, UNITY_MATRIX_I_VP); // 左手系 -posWS.z / 10 [1,0]
+    float3 posVS = ComputeViewSpacePosition(posNDC.xy, posNDC.z, _my_matrixInvP); // 右手系 posVS.z / 10 [0,1]
+    float4 posCS = ComputeClipSpacePosition(posVS, _my_matrixP); // -posCS.w / 10 近0远1
+  //  posCS.w *= -1;
+   // return half4(posCS.z / -posCS.w, 0, 0, 0);
+  //  if (-posCS.w > 0)
+   //     return half4(1, 0, 0, 0);
+   // else
+   //     return half4(0, 1, 0, 0);
+   // return posCS;
     
     float3 normalVS = normalize(mul(_my_matrixV, float4(normalWS, 1)));
     float3 reflectVS = normalize(reflect(posVS, normalVS));
     float3 endPosVS = posVS + _Max_Ray_March_Length * reflectVS;
-
+    float4 endPosCS = ComputeClipSpacePosition(endPosVS, _my_matrixP);
+   // endPosCS.w *= -1;
+    
     float3 endPosNDC = ComputeNormalizedDeviceCoordinatesWithZ(reflectVS, _my_matrixP);
     float3 reflectNDC = normalize(endPosNDC - posNDC);
     
-    return RayMarchScreenSpace(posNDC, reflectNDC, endPosNDC);
+    // non-homogeneous view/w
+    float2 k = float2(1.0 / posCS.w, 1.0 / endPosCS.w);
+    float2 z = float2(posVS.z * k.x, endPosVS.z * k.y);
+    
+    return RayMarchScreenSpace(posNDC, reflectNDC, endPosNDC, z, k);
 }
 
 half4 frag(Varyings input) : SV_Target
 {
-  //  return SSR(input.uv);
+   // return SSR(input.uv);
     return SSRScreenSpace(input.uv);
 }
