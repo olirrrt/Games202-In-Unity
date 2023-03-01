@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 835f3038c66ee7d479013520ece07574, type: 3}
   m_Name: SSGIFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   passSettings:
     renderPassEvent: 550
-    RayMarchSampleNum: 250
-    RayMarchStep: 0.17
-    maxRayMarchLength: 44
-    IndirectLightSampleNum: 14
+    RayMarchSampleNum: 2
+    RayMarchStep: 0.02
+    maxRayMarchLength: 5
+    IndirectLightSampleNum: 1
 --- !u!114 &-717247620320984785
 MonoBehaviour:
   m_ObjectHideFlags: 0

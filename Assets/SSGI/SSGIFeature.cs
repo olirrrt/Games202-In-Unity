@@ -7,12 +7,17 @@ public class SSGIFeature : ScriptableRendererFeature
     public class PassSettings
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
+        [Range(0, 500)] public int RayMarchSampleNum = 50;
+        
+        [Header("View Space March")]
+        [Range(0, 1)] public float RayMarchStep = 0.5f;
+        [Range(0, 0.1f)] public float Thickness = 0.001f;
 
-        [Range(0, 250)] public int RayMarchSampleNum = 50;
-        [Range(0, 10)] public float RayMarchStep = 0.5f;
 
+        [Header("Screen Space March")]
         [Range(0, 1000)] public float maxRayMarchLength = 100;
 
+        [Header("Render")]
         [Range(1, 100)] public int IndirectLightSampleNum = 10;
     }
 
