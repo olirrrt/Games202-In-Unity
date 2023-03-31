@@ -1,0 +1,82 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+float4x4 _CamToWorld;
+float4x4 _WorldToCam;
+float4x4 _InvProj;
+
+struct Ray
+{
+    float3 ori;
+    float3 dir;
+};
+
+struct Sphere
+{
+    float3 center;
+    float radius;
+    bool checkRayIntersect(Ray ray, out float t0)
+    {
+   
+        float3 L = center - ray.ori;
+        float tca = dot(L, ray.dir);
+        float d2 = L * L - tca * tca;
+        if (d2 > radius * radius)
+            return false;
+        float thc = sqrt(radius * radius - d2);
+        t0 = tca - thc;
+        float t1 = tca + thc;
+        if (t0 < 0)
+            t0 = t1;
+        if (t0 < 0)
+            return false;
+        return true;
+    }
+};
+
+struct Camera
+{
+    float2 resolution;
+    float aspect;
+    float fov;
+};
+
+float Remap(float x, float2 In, float2 Out)
+{
+    return (x - In.x) / (In.y - In.x) * (Out.y - Out.x) + Out.x;
+}
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint2 screenSize;
+    Result.GetDimensions(screenSize.x, screenSize.y);
+    float2 invScreenSize = 1.0 / screenSize;
+    float aspect = screenSize.x / (float) screenSize.y;
+    float nearPlane = 0.3;
+    float2 uv = (id.xy + 0.5) * invScreenSize * 2 - 1;
+    Ray ray;
+    ray.ori = float3(0, 0, 0);
+    ray.dir = float3(uv, -nearPlane); // 右手系
+    
+    Sphere sphere;
+    sphere.radius = 1;
+    sphere.center = float3(0, 0, -8);
+    float4 col = float4(0, 0, 0, 0);
+    //float4(0.5, 0.5, 1, 0) * Remap((id.y / (float) screenSize.y), float2(0, 1), float2(0.5, 1));
+    
+    float t;
+    bool inter = sphere.checkRayIntersect(ray, t);
+    
+    float3 pos = ray.ori + t * ray.dir;
+    float3 n = normalize(pos - sphere.center);
+    if (inter)
+        col = float4(n, 0);
+    
+    Result[id.xy] = col; //float4((id.xy * invScreenSize), 0, 0);
+    
+   // Result[id.xy] = float4(0, 0, 1, 0) * (id.y / screenSize.y);
+}

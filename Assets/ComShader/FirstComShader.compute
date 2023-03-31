@@ -1,0 +1,24 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Spheres
+
+#include "../CommonLib/random.hlsl"
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWStructuredBuffer<float3> Result;
+uniform float Time;
+
+// id: which iteration of the kernel we’re in
+// id.x ∈ [0,64)
+// id.y、z ∈ [0,1)
+[numthreads(64, 1, 1)]
+void Spheres(uint3 id : SV_DispatchThreadID)
+{
+    float3 baseDir = normalize(hash13(id.x) - 0.5);
+    float3 orthogonal = normalize(cross(baseDir, hash13(id.x + 7.1395) - 0.5));
+    
+    float scaledTime = Time * 0.9 + rand11(id.x) * 712.13;
+    
+    float3 dir = baseDir * sin(scaledTime) + orthogonal * cos(scaledTime);
+    
+    Result[id.x] = dir * 4;
+}
