@@ -20,10 +20,10 @@ struct Sphere
     float radius;
     bool checkRayIntersect(Ray ray, out float t0)
     {
-   
+        t0 = 0;
         float3 L = center - ray.ori;
         float tca = dot(L, ray.dir);
-        float d2 = L * L - tca * tca;
+        float d2 = dot(L, L) - tca * tca;
         if (d2 > radius * radius)
             return false;
         float thc = sqrt(radius * radius - d2);
@@ -60,10 +60,10 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float2 uv = (id.xy + 0.5) * invScreenSize * 2 - 1;
     Ray ray;
     ray.ori = float3(0, 0, 0);
-    ray.dir = float3(uv, -nearPlane); // 右手系
+    ray.dir = normalize(float3(uv, -nearPlane)); // 右手系
     
     Sphere sphere;
-    sphere.radius = 1;
+    sphere.radius = 4;
     sphere.center = float3(0, 0, -8);
     float4 col = float4(0, 0, 0, 0);
     //float4(0.5, 0.5, 1, 0) * Remap((id.y / (float) screenSize.y), float2(0, 1), float2(0.5, 1));
