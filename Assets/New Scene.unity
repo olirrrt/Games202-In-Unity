@@ -183,6 +183,7 @@ GameObject:
   - component: {fileID: 481304762}
   - component: {fileID: 481304765}
   - component: {fileID: 481304766}
+  - component: {fileID: 481304767}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -302,7 +303,48 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cShader: {fileID: 7200000, guid: 3e67a4f5181ac5d4bb7fb524c228e962, type: 3}
-  rtDebug: {fileID: 8400000, guid: e6115931743a9d44f91ed776956768e4, type: 2}
+  skybox: {fileID: 8900000, guid: 3b5d67736d7b8ad4f8da4d58eaef0b98, type: 3}
+  skybox2: {fileID: 2800000, guid: 4fd40d751a6717040be721921097a2ad, type: 3}
+--- !u!114 &481304767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 481304761}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d1575608d2cd01408014a40d9c41448, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boost: 3.5
+  positionLerpTime: 0.2
+  mouseSensitivityCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.5
+      inSlope: 0
+      outSlope: 5
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 2.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  rotationLerpTime: 0.01
+  invertY: 0
 --- !u!1 &1402371699
 GameObject:
   m_ObjectHideFlags: 0

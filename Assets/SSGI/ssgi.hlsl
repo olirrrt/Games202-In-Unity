@@ -5,9 +5,7 @@
 
 #include "../CommonLib/random.hlsl"
 
-#define TWO_PI 6.283185307
-#define INV_PI 0.31830988618
-#define INV_TWO_PI 0.15915494309
+
 
 struct Attributes
 {
@@ -63,20 +61,7 @@ float4 _MainTex_TexelSize;
 float _Max_Ray_March_Length;
 float _Thickness;
 
-/*
-返回一个局部坐标系的位置
-参数 pdf 是采样的概率，参数 s 是随机数状态
-*/
-float3 SampleHemisphereUniform(inout float s, out float pdf)
-{
-    float2 uv = hash12(s);
-    float z = uv.x;
-    float phi = uv.y * TWO_PI;
-    float sinTheta = sqrt(1.0 - z * z);
-    float3 dir = float3(sinTheta * cos(phi), sinTheta * sin(phi), z);
-    pdf = INV_TWO_PI;
-    return dir;
-}
+
 
 half4 RayMarch(float3 ro, float3 rd)
 {

@@ -1,17 +1,37 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
+#include "../CommonLib/random.hlsl"
+#define PI 3.1415926
+#define DIFFUSE_SAMPLE_NUM 64
+
 RWTexture2D<float4> Result;
+Texture2D<float4> _Skybox2;
+TextureCube<float4> _Skybox;
 float4x4 _CamToWorld;
 float4x4 _WorldToCam;
 float4x4 _InvProj;
+float _nearPlane;
+float _FOV;
+
+struct Light
+{
+    float3 pos;
+    float3 dir;
+    float3 color;
+};
 
 struct Ray
 {
     float3 ori;
     float3 dir;
+};
+
+struct HitInfo
+{
+    bool inter;
+    float3 pos;
+    float3 normal;
+    float dis;
 };
 
 struct Sphere
@@ -42,6 +62,7 @@ struct Camera
     float2 resolution;
     float aspect;
     float fov;
+    float3 pos;
 };
 
 float Remap(float x, float2 In, float2 Out)
@@ -49,34 +70,159 @@ float Remap(float x, float2 In, float2 Out)
     return (x - In.x) / (In.y - In.x) * (Out.y - Out.x) + Out.x;
 }
 
+void FindIntersect(Ray ray, Sphere sphere, inout HitInfo hit)
+{
+    hit.inter = false;
+    hit.normal = float3(0, 0, 0);
+    hit.pos = float3(0, 0, 0);
+    hit.dis = 1e6;
+    
+    float t;
+    bool inter = sphere.checkRayIntersect(ray, t);
+             
+    if (inter)
+    {
+        hit.inter = true;
+        hit.pos = ray.ori + t * ray.dir;
+        hit.normal = normalize(hit.pos - sphere.center);
+        hit.dis = t;
+    }
+         
+    float dis = (-4 - ray.ori.y) / ray.dir.y;
+        
+    if (dis > 0 && dis < hit.dis)
+    {
+        hit.inter = true;
+        hit.normal = float3(0, 1, 0);
+        hit.pos = ray.ori + dis * ray.dir;
+        hit.dis = dis;
+    }
+}
+void EvauLighting(HitInfo hit, inout float4 col)
+{
+   // if(!hit.inter) col+=
+}
+SamplerState my_point_repeat_sampler; //{};
+
+struct Sample
+{
+    float3 posTS; //tangent
+    float pdf;
+    
+    float3 tanToWorld(float3 worldN)
+    {
+        float3 T, B;
+      //  float3x3 TBN =
+      //  float3x3()
+        return posTS;
+    }
+};
+ 
+void GenerateSamples(inout Sample samples[DIFFUSE_SAMPLE_NUM])
+{
+    for (int i = 0; i < DIFFUSE_SAMPLE_NUM; i++)
+    {
+        Sample sam;
+        sam.posTS = SampleHemisphereUniform(i, sam.pdf);
+        samples[i] = sam;
+    }
+
+}
+     
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
+    Sample samples[DIFFUSE_SAMPLE_NUM];
+    GenerateSamples(samples);
+    
     uint2 screenSize;
     Result.GetDimensions(screenSize.x, screenSize.y);
     float2 invScreenSize = 1.0 / screenSize;
     float aspect = screenSize.x / (float) screenSize.y;
-    float nearPlane = 0.3;
-    float2 uv = (id.xy + 0.5) * invScreenSize * 2 - 1;
-    Ray ray;
-    ray.ori = float3(0, 0, 0);
-    ray.dir = normalize(float3(uv, -nearPlane)); // 右手系
+    float fov = _FOV * PI / 180;
+    float viewPortH = 2 * tan(fov / 2);
+    float viewPortW = aspect * viewPortH;
+ 
     
     Sphere sphere;
     sphere.radius = 4;
-    sphere.center = float3(0, 0, -8);
+    sphere.center = float3(0, 0, 8); // transform to view space
+
+    sphere.center = mul(_WorldToCam, float4(sphere.center, 0)).xyz;
+   // float3 worldRay = normalize(mul(_CamToWorld, float4(ray.dir, 0)));
+    
     float4 col = float4(0, 0, 0, 0);
-    //float4(0.5, 0.5, 1, 0) * Remap((id.y / (float) screenSize.y), float2(0, 1), float2(0.5, 1));
+     //float4 col = _Skybox2.SampleLevel(my_point_repeat_sampler, float2(acos(ray.dir.y) / PI, atan2(ray.dir.x, -ray.dir.z) / PI * 0.5), 0); // sample cube
+
+    Light light;
+    light.color = float3(1, 1, 1);
+    light.dir = normalize(float3(1, 2, 1));
     
-    float t;
-    bool inter = sphere.checkRayIntersect(ray, t);
+    // sample pattern to anti aliase
+    float2 sampleOffset[] = { float2(0, 2), float2(1, 0), float2(2, 3), float2(3, 2) };
+    float2 rayAspect = float2(tan(fov / 2) * aspect, tan(fov / 2));
+    for (int i = 0; i < 4; i++)
+    {
+        float2 uv = (id.xy + sampleOffset[i] * 0.25 + 0.125) * invScreenSize * 2 - 1;
+        //float2 uv = (id.xy + 0.5) * invScreenSize * 2 - 1;
+        uv *= rayAspect;
+        
+        Ray ray;
+        ray.ori = float3(0, 0, 0);
+        ray.dir = normalize(float3(uv, -0.3)); // 右手系
+        HitInfo hit;
+       
+        
+        FindIntersect(ray, sphere, hit);
+       
+        if (hit.inter)
+        { /*
+            Ray rRay;
+            rRay.ori = hit.pos + 1e-6 * hit.normal; // 由于浮点数精度，需要在法线上加一个微小的偏移量，否则会有self-occlusion
+            rRay.dir = (reflect(ray.dir, hit.normal));
+            //rRay.dir *= rayAspect;
+           // rRay.dir.x *= rayAspect;
+            rRay.dir = normalize(rRay.dir);
+   
+            FindIntersect(rRay, sphere, hit);
+                  
+            if (hit.inter)
+                col.rgb += dot(hit.normal, light.dir);
+            else
+                col.rgb += _Skybox.SampleLevel(my_point_repeat_sampler, rRay.dir, 1).rgb;
+            */
+            col.rgb += dot(hit.normal, light.dir);
+            for (int j = 0; j < DIFFUSE_SAMPLE_NUM; j++)
+            {
+                Ray dRay;
+                dRay.ori = hit.pos + 1e-6 * hit.normal;
+                dRay.dir = samples[j].posTS + hit.normal;
+                FindIntersect(dRay, sphere, hit);
+                if (hit.inter)
+                    col.rgb += dot(hit.normal, light.dir);
+                else
+                    col.rgb += _Skybox.SampleLevel(my_point_repeat_sampler, dRay.dir, 1).rgb;
+              //  col.rgb /= PI;
+                Ray shadowRay;
+                shadowRay.ori = hit.pos + 1e-6 * hit.normal;
+                shadowRay.dir = light.dir;
+                HitInfo shadowHit;
+                FindIntersect(shadowRay, sphere, shadowHit);
+                if (shadowHit.inter)
+                    col.rgb *= float3(0, 0, 0);
+            }
+            col.rgb /= DIFFUSE_SAMPLE_NUM;
+            
+        }
+        else
+            col.rgb += _Skybox.SampleLevel(my_point_repeat_sampler, ray.dir, 1).rgb;
+    }
+    col.rgb /= 4;
     
-    float3 pos = ray.ori + t * ray.dir;
-    float3 n = normalize(pos - sphere.center);
-    if (inter)
-        col = float4(n, 0);
-    
-    Result[id.xy] = col; //float4((id.xy * invScreenSize), 0, 0);
-    
-   // Result[id.xy] = float4(0, 0, 1, 0) * (id.y / screenSize.y);
+    // gamma correction
+    float invGamma = 1 / 2.2;
+    col.rgb = pow(col.rgb, float3(invGamma, invGamma, invGamma));
+
+    Result[id.xy] = col;
+ 
 }
