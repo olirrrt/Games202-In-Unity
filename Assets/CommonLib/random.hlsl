@@ -14,6 +14,12 @@ float rand21(float2 xy)
     return frac(sin(dot(xy, float2(12.9898, 78.233))) * 43758.5453123);
 }
 
+float hash21(float2 p)
+{
+    float3 p3 = frac(float3(p.xyx) * .1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return frac((p3.x + p3.y) * p3.z);
+}
 
 float hash11(float p)
 {
